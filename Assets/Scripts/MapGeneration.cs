@@ -16,16 +16,36 @@ public class MapGeneration : MonoBehaviour
     public float perlinX = .3f;
     public float perlinZ = .3f;
     public float perlinMultiplier = 2f;
-
     public Gradient gradient;
+    public int seed = 1000;
+
+    public GameObject[] treeModels;
+    public float upperTreeThreshold;
+    public float lowerTreeThreshold;
+    public float perlinSpawnX;
+    public float perlinSpawnZ;
+
+    public GameObject[] rockModels;
+    public float upperRockThreshold;
+    public float lowerRockThreshold;
+
+    public GameObject waterModel;
+    public float waterLevel;
+
     float minTerrainHeight;
     float maxTerrainHeight;
+
+    
+    GameObject[] trees;
+    
     void Start()
     {
         mesh = new Mesh();
         GetComponent<MeshFilter>().mesh = mesh;
         CreateShape();
         UpdateMesh();
+        GameObject water = Instantiate(waterModel, new Vector3(0, waterLevel, 0), Quaternion.identity);
+        water.transform.localScale = new Vector3(xSize/4, 1, zSize/4);
     }
 
     void CreateShape()
@@ -38,15 +58,45 @@ public class MapGeneration : MonoBehaviour
         {
             for(int x = 0; x <= xSize; x++)
             {
-                float y = Mathf.PerlinNoise(x * perlinX, z * perlinZ) * perlinMultiplier;
+                float y = Mathf.PerlinNoise((x + seed) * perlinX, (z + seed) * perlinZ) * perlinMultiplier;
+
+                if(x == xSize / 2)
+                {
+                    y = -2f;
+                }
+                
 
                 if(y > maxTerrainHeight)
                     maxTerrainHeight = y;
                 
                 if(y < minTerrainHeight)
                     minTerrainHeight = y;
-                    
+                
                 vertices[i] = new Vector3(x, y, z);
+
+                float spawnNoise = Mathf.PerlinNoise((x + seed) * perlinSpawnX, (z + seed) * perlinSpawnZ);
+                if((x < xSize/2 - 3 || x > xSize/2 + 3))
+                {
+                    if(spawnNoise < upperTreeThreshold && spawnNoise > lowerTreeThreshold)
+                    {
+                        float whatToSpawn = Mathf.PerlinNoise(x + (seed * 5), z + (seed * 5));
+
+                        whatToSpawn = whatToSpawn * treeModels.Length;
+                        whatToSpawn = Mathf.RoundToInt(whatToSpawn);
+                        GameObject tree = Instantiate(treeModels[(int)whatToSpawn], new Vector3(x, y + 1f, z), Quaternion.identity);
+                        tree.transform.parent = transform;
+                    }
+
+                    if(spawnNoise < upperRockThreshold && spawnNoise > lowerRockThreshold)
+                    {
+                        float whatToSpawn = Mathf.PerlinNoise(x + (seed * 5), z + (seed * 5));
+
+                        whatToSpawn = whatToSpawn * rockModels.Length;
+                        whatToSpawn = Mathf.RoundToInt(whatToSpawn);
+                        GameObject rock = Instantiate(rockModels[(int)whatToSpawn], new Vector3(x, y + 1f, z), Quaternion.identity);
+                        rock.transform.parent = transform;
+                    }
+                }
                 i++;
             }
         }
